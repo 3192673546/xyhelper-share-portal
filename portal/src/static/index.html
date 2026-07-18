@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#7258d7">
+  <title>Pastel Share</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <section id="auth-screen" class="auth-screen" aria-label="登录与注册">
+    <div class="auth-intro">
+      <a class="brand brand-large" href="/" aria-label="返回首页">
+        <span class="brand-mark">P</span>
+        <span><strong data-site-name>Pastel Share</strong><small>XYHelper Portal</small></span>
+      </a>
+      <div class="hero-copy">
+        <span class="eyebrow">YOUR AI WORKSPACE</span>
+        <h1>一个入口，连接你的<br><em>ChatGPT 车队</em></h1>
+        <p>独立用户、套餐与订单系统，聊天核心由 XYHelper 提供。每个用户拥有隔离的会话身份。</p>
+      </div>
+      <div class="feature-row">
+        <div><span>01</span><strong>会话隔离</strong><small>稳定用户身份</small></div>
+        <div><span>02</span><strong>灵活套餐</strong><small>普通 / Plus 权限</small></div>
+        <div><span>03</span><strong>快速上车</strong><small>短期安全票据</small></div>
+      </div>
+    </div>
+
+    <div class="auth-panel">
+      <div class="auth-card">
+        <div class="auth-tabs" role="tablist">
+          <button class="auth-tab active" type="button" data-auth-tab="login">登录</button>
+          <button class="auth-tab" type="button" data-auth-tab="register">注册</button>
+        </div>
+
+        <form id="login-form" class="auth-form">
+          <header><h2>欢迎回来</h2><p>登录后选择可用车队</p></header>
+          <label><span>邮箱地址</span><input name="email" type="email" autocomplete="email" placeholder="name@example.com" required></label>
+          <label><span>密码</span><input name="password" type="password" autocomplete="current-password" placeholder="至少 8 位" required minlength="8"></label>
+          <button class="button primary wide" type="submit"><span>登录控制台</span><b>→</b></button>
+        </form>
+
+        <form id="register-form" class="auth-form hidden">
+          <header><h2>创建账号</h2><p>注册后可使用试用或兑换套餐</p></header>
+          <label><span>昵称</span><input name="name" type="text" autocomplete="nickname" placeholder="你的昵称" maxlength="40" required></label>
+          <label><span>邮箱地址</span><input name="email" type="email" autocomplete="email" placeholder="name@example.com" required></label>
+          <label><span>密码</span><input name="password" type="password" autocomplete="new-password" placeholder="8–128 位" required minlength="8" maxlength="128"></label>
+          <button class="button primary wide" type="submit"><span>注册并进入</span><b>→</b></button>
+        </form>
+
+        <p class="auth-note">继续即表示你同意站点规则，并仅使用获得授权的账号服务。</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="app-shell" class="app-shell hidden">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <span class="brand-mark">P</span>
+        <span><strong data-site-name>Pastel Share</strong><small>XYHelper Portal</small></span>
+      </a>
+
+      <nav class="main-nav" aria-label="主导航">
+        <button class="nav-item active" type="button" data-view="dashboard"><i>⌂</i><span>概览</span></button>
+        <button class="nav-item" type="button" data-view="cars"><i>◈</i><span>选择车队</span></button>
+        <button class="nav-item" type="button" data-view="store"><i>◇</i><span>套餐中心</span></button>
+        <button class="nav-item" type="button" data-view="redeem"><i>✦</i><span>兑换中心</span></button>
+        <button class="nav-item" type="button" data-view="orders"><i>≡</i><span>我的订单</span></button>
+        <button class="nav-item hidden" id="admin-nav" type="button" data-view="admin"><i>⚙</i><span>站点管理</span></button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="profile-mini" type="button" data-view="account">
+          <span class="avatar" id="sidebar-avatar">U</span>
+          <span><strong id="sidebar-name">用户</strong><small id="sidebar-email">user@example.com</small></span>
+          <b>›</b>
+        </button>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <button id="mobile-menu" class="icon-button mobile-only" type="button" aria-label="打开菜单">☰</button>
+        <div><span class="breadcrumb">控制台 /</span><strong id="page-title">概览</strong></div>
+        <div class="topbar-actions">
+          <span id="plan-chip" class="plan-chip">未开通</span>
+          <button id="refresh-view" class="icon-button" type="button" title="刷新当前页面">↻</button>
+          <button id="logout-button" class="button ghost small" type="button">退出</button>
+        </div>
+      </header>
+      <main id="view-root" class="view-root" tabindex="-1"></main>
+    </section>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop hidden" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header><div><span class="eyebrow">PORTAL</span><h2 id="modal-title">编辑</h2></div><button id="modal-close" class="icon-button" type="button">×</button></header>
+      <form id="modal-form"><div id="modal-content"></div><footer><button class="button ghost" type="button" id="modal-cancel">取消</button><button class="button primary" type="submit">保存</button></footer></form>
+    </section>
+  </div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

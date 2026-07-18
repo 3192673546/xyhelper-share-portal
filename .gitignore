@@ -1,0 +1,8 @@
+frontend
+backend
+.devcontainer
+data
+.env
+config.yaml
+portal/test-data
+portal/coverage
