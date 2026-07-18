@@ -1,0 +1,115 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8
+    command: --mysql-native-password=ON --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+    volumes:
+      - ./data/mysql/:/var/lib/mysql/
+      - ./data/generated-db-init/:/docker-entrypoint-initdb.d/:ro
+    environment:
+      TZ: Asia/Shanghai # 指定时区
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "cool" # 业务库名
+      MYSQL_USER: "cool" # 业务库用户名
+      MYSQL_PASSWORD: "${MYSQL_APP_PASSWORD:?请在 .env 中设置 MYSQL_APP_PASSWORD}"
+  redis:
+    image: redis
+    # 如需启用 Redis 密码，请同步更新应用配置。
+    restart: always
+    environment:
+      TZ: Asia/Shanghai # 指定时区
+    volumes:
+      - ./data/redis/:/data/
+  portal:
+    build:
+      context: ./portal
+    restart: always
+    init: true
+    ports:
+      - "${PORTAL_BIND:-0.0.0.0}:${PORTAL_PORT:-8800}:8080"
+    environment:
+      TZ: "${TZ:-Asia/Shanghai}"
+      PORT: "8080"
+      DATA_PATH: "/data/portal.db"
+      SITE_NAME: "${SITE_NAME:-Pastel Share}"
+      SHARE_INTERNAL_URL: "http://chatgpt-share-server:8001"
+      SHARE_PUBLIC_URL: "${SHARE_PUBLIC_URL:-auto}"
+      SHARE_PUBLIC_PORT: "${SHARE_PORT:-8300}"
+      PORTAL_PUBLIC_URL: "${PORTAL_PUBLIC_URL:-http://localhost:8800}"
+      OAUTH_SHARED_SECRET: "${OAUTH_SHARED_SECRET:?请在 .env 中设置 OAUTH_SHARED_SECRET}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.com}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?请在 .env 中设置 ADMIN_PASSWORD}"
+      REGISTRATION_ENABLED: "${REGISTRATION_ENABLED:-true}"
+      TRIAL_HOURS: "${TRIAL_HOURS:-0}"
+      SESSION_HOURS: "${SESSION_HOURS:-168}"
+      HANDOFF_MINUTES: "${HANDOFF_MINUTES:-5}"
+      COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+      COOKIE_DOMAIN: "${COOKIE_DOMAIN:-}"
+      TRUST_PROXY: "${TRUST_PROXY:-false}"
+      EPAY_URL: "${EPAY_URL:-}"
+      EPAY_PID: "${EPAY_PID:-}"
+      EPAY_KEY: "${EPAY_KEY:-}"
+      EPAY_TYPE: "${EPAY_TYPE:-alipay}"
+      EPAY_DEVICE: "${EPAY_DEVICE:-pc}"
+      EPAY_SIGN_MODE: "${EPAY_SIGN_MODE:-append}"
+    volumes:
+      - ./data/portal/:/data/
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+  chatgpt-share-server:
+    image: xyhelper/chatgpt-share-server:latest
+    restart: always
+    ports:
+      - "${SHARE_BIND:-0.0.0.0}:${SHARE_PORT:-8300}:8001"
+    environment:
+      TZ: Asia/Shanghai # 指定时区
+      # 接入网关地址
+      CHATPROXY: "${CHATPROXY:-https://demo.xyhelper.cn}"
+      # 接入网关的authkey
+      AUTHKEY: "${AUTHKEY:-xyhelper}"
+      # 内容审核及速率限制
+      AUDIT_LIMIT_URL: "http://auditlimit:8080/audit_limit"
+      # 自建用户门户授权接口。请勿删除 secret 参数。
+      OAUTH_URL: "http://portal:8080/api/xyhelper/oauth?secret=${OAUTH_SHARED_SECRET:?请在 .env 中设置 OAUTH_SHARED_SECRET}"
+    volumes:
+      - ./data/generated/config.yaml:/app/config.yaml:ro
+      - ./data/chatgpt-share-server/:/app/data/
+    labels:
+      - "com.centurylinklabs.watchtower.scope=xyhelper-chatgpt-share-server"
+    depends_on:
+      portal:
+        condition: service_healthy
+  auditlimit:
+    image: xyhelper/auditlimit
+    restart: always
+    # ports:
+    #   - 9611:8080
+    environment:
+      LIMIT: "${AUDIT_LIMIT:-40}"  # 限制每个userToken允许的次数
+      PER: "${AUDIT_PERIOD:-3h}" # 限制周期 1s, 1m, 1h, 1d, 1w, 1y
+    labels:
+      - "com.centurylinklabs.watchtower.scope=xyhelper-chatgpt-share-server"
+  watchtower:
+    image: containrrr/watchtower
+    profiles: ["auto-update"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --scope xyhelper-chatgpt-share-server --cleanup
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    labels:
+      - "com.centurylinklabs.watchtower.scope=xyhelper-chatgpt-share-server"
